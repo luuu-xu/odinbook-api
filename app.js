@@ -3,28 +3,27 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-const mongoose = require('mongoose');
 const session = require('express-session');
 const passport = require('passport');
+require('dotenv').config();
 
 var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+const usersRouter = require('./routes/users');
 const apiRouter = require('./routes/api');
 const authRouter = require('./routes/auth');
 
-// mongoose setup
-mongoose.set('strictQuery', false);
-const mongoDB = "mongodb+srv://a550763321:exGyXF1anrofd5l4@cluster0.bs2xxmc.mongodb.net/?retryWrites=true&w=majority";
-async function main() {
-  await mongoose.connect(mongoDB);
+// // mongoose setup
+if (process.env.NODE_ENV === 'TEST') {
+  require('./tests/mongoConfigTesting.js');
+} else {
+  require('./mongoConfig.js');
 }
-main().catch(console.error);
 
 var app = express();
 
 // passport session setup
 app.use(session({
-  secret: 'keyboard cat',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
 }));
@@ -42,9 +41,9 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
 app.use('/api', apiRouter);
-app.use('/auth', authRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/users', usersRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
