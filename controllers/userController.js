@@ -31,6 +31,11 @@ exports.get_user = async (req, res, next) => {
 
 // Make a friend request from current user to another user by userid on POST
 exports.send_friend_request = async (req, res, next) => {
+  // Check that the current user is logged in
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+  
   try {
     // Find the current user by userid
     const currentUser = await User.findById(req.user._id);
