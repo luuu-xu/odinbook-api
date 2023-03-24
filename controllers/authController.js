@@ -26,7 +26,7 @@ passport.use(new LocalStrategy(
 passport.serializeUser((user, done) => {
   process.nextTick(() => {
     done(null, {
-      id: user._id,
+      _id: user._id,
       username: user.username,
     });
   });
