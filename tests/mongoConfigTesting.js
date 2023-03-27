@@ -9,7 +9,7 @@ async function initializeMongoServer() {
   mongoServer = await MongoMemoryServer.create();
   const mongoUri = mongoServer.getUri();
 
-  mongoose.connect(mongoUri);
+  await mongoose.connect(mongoUri);
 
   mongoose.connection.on('error', (err) => {
     if (err.message.code === 'ETIMEDOUT') {
@@ -19,9 +19,9 @@ async function initializeMongoServer() {
     console.log(err);
   });
 
-  mongoose.connection.once('open', () => {
-    // console.log('MongoDB connection established');
-  });
+  // mongoose.connection.once('open', () => {
+  //   console.log('MongoDB connection established');
+  // });
 }
 
 async function closeMongoServer() {
