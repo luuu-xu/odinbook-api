@@ -2,6 +2,7 @@ const request = require('supertest');
 const app = require('../app');
 const User = require('../models/User');
 const Post = require('../models/Post');
+const Comment = require('../models/Comment');
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const session = require('supertest-session');
@@ -21,11 +22,13 @@ let mockUsers = [
   })
 ];
 
-// Create a correct post by Alice
 let mockPostData = {
   content: 'This is a test post',
-  // user: mockUsers[0]._id,
 };
+
+let mockCommentData = {
+  content: 'This is a test comment',
+}
 
 beforeAll(async () => {
   await initializeMongoServer();
@@ -177,7 +180,6 @@ describe('GET /api/authuser/posts', () => {
     let res = await authenticatedSession
       .get('/api/authuser/posts')
       .expect(200);
-    console.log(res.body);
     expect(res.body.posts.length).toBe(1);
     expect(res.body.posts[0].content).toBe(mockPostData.content);
 
@@ -376,22 +378,177 @@ describe('POST /api/authuser/accept-friend-request/:userid', () => {
   });
 });
 
-describe.only('POST /api/authuser/posts/:postid/give-like', () => {
+describe('POST /api/authuser/posts/:postid/give-like', () => {
   let currentUser = mockUsers[0]; // Alice
+  let mockPost = mockPostData;
   let testSession = null;
   let authenticatedSession;
 
   beforeEach(async () => {
-    await User.find().then(users => console.log(users));
-    await clearMongoServer();
-    await User.find().then(users => console.log(users));
+    // Clear up the database and add Alice and Bob into the database
+    await User.deleteMany({});
+    await Post.deleteMany({});
+    for (let user of mockUsers) {
+      await User.create({
+        _id: user._id,
+        name: user.name,
+        username: user.username,
+        password: user.password,
+      });
+    }
+    // Log in as Alice
+    testSession = session(app);
+    await testSession.post('/api/auth/login').send({
+      username: currentUser.username,
+      password: 'password123',
+    });
+    authenticatedSession = testSession;
+    // Alice posts a post
+    await authenticatedSession
+      .post('/api/authuser/posts')
+      .send(mockPostData)
+      .then(res => {
+        mockPost._id = res.body.post._id;
+      });
   });
 
   it('should return a 401 error if the user is not logged in', async () => {
     await authenticatedSession.post('/api/auth/logout').expect(200);
     const res = await authenticatedSession
-      .post(`/api/authuser/posts/${new mongoose.Types.ObjectId()}/give-like`)
+      .post(`/api/authuser/posts/${mockPost._id}/give-like`)
       .expect(401);
     expect(res.body.message).toBe('Unauthorized');
   });
+
+  it('should return a 404 error if the authuser is not found', async () => {
+    // Delete Alice from DB
+    await User.findByIdAndDelete(currentUser._id);
+    const res = await authenticatedSession
+      .post(`/api/authuser/posts/${mockPost._id}/give-like`)
+      .expect(404);
+    expect(res.body.message).toBe('User not found');
+  });
+
+  it('should return a 404 error if the post is not found', async () => {
+    // Delete mockPost from DB
+    await Post.findByIdAndDelete(mockPost._id);
+    const res = await authenticatedSession
+      .post(`/api/authuser/posts/${mockPost._id}/give-like`)
+      .expect(404);
+    expect(res.body.message).toBe('Post not found');
+  });
+
+  it('should add the currentUser to the post\'s likes array', async () => {
+    const res = await authenticatedSession
+      .post(`/api/authuser/posts/${mockPost._id}/give-like`)
+      .expect(200);
+    expect(res.body.message).toBe('Like added');
+    expect(res.body.post.likes).toContainEqual(currentUser._id.toString());
+  });
+
+  it('should return a 400 error if the post is already liked by the currentUser', async () => {
+    let res = await authenticatedSession
+      .post(`/api/authuser/posts/${mockPost._id}/give-like`)
+      .expect(200);
+    expect(res.body.post.likes).toContainEqual(currentUser._id.toString());
+    res = await authenticatedSession
+      .post(`/api/authuser/posts/${mockPost._id}/give-like`)
+      .expect(400);
+    expect(res.body.message).toBe('Already liked');
+  });
+});
+
+describe('POST /api/authuser/posts/:postid/comments', () => {
+  let currentUser = mockUsers[0]; // Alice
+  let mockPost = mockPostData;
+  let mockComment = mockCommentData;
+  let testSession = null;
+  let authenticatedSession;
+
+  beforeEach(async () => {
+    // Clear up the database and add Alice and Bob into the database
+    await User.deleteMany({});
+    await Post.deleteMany({});
+    for (let user of mockUsers) {
+      await User.create({
+        _id: user._id,
+        name: user.name,
+        username: user.username,
+        password: user.password,
+      });
+    }
+    // Log in as Alice
+    testSession = session(app);
+    await testSession.post('/api/auth/login').send({
+      username: currentUser.username,
+      password: 'password123',
+    });
+    authenticatedSession = testSession;
+    // Alice posts a post
+    await authenticatedSession
+      .post('/api/authuser/posts')
+      .send(mockPostData)
+      .then(res => {
+        mockPost._id = res.body.post._id;
+      });
+  });
+
+  it('should return a 401 error if the user is not logged in', async () => {
+    await authenticatedSession.post('/api/auth/logout').expect(200);
+    const res = await authenticatedSession
+      .post(`/api/authuser/posts/${mockPost._id}/comments`)
+      .expect(401);
+    expect(res.body.message).toBe('Unauthorized');
+  });
+
+  it('should return a 404 error if the user is not found', async () => {
+    // Delete Alice from DB
+    await User.findByIdAndDelete(currentUser._id);
+    const res = await authenticatedSession
+      .post(`/api/authuser/posts/${mockPost._id}/comments`)
+      .expect(404);
+    expect(res.body.message).toBe('User not found');
+  });
+
+  it('should return a 404 error if the post is not found', async () => {
+    // Delete mockPost from DB
+    await Post.findByIdAndDelete(mockPost._id);
+    const res = await authenticatedSession
+      .post(`/api/authuser/posts/${mockPost._id}/comments`)
+      .expect(404);
+    expect(res.body.message).toBe('Post not found');
+  });
+
+  it('should post a comment', async () => {
+    let res = await authenticatedSession
+      .post(`/api/authuser/posts/${mockPost._id}/comments`)
+      .send(mockCommentData)
+      .expect(201);
+    mockComment._id = res.body.comment._id;
+    expect(res.body.comment.content).toBe(mockComment.content);
+    expect(res.body.comment._id).toBe(mockComment._id.toString());
+    expect(res.body.post._id).toBe(mockPost._id.toString());
+    // Log in as Bob and Bob posts a comment to the post
+    await authenticatedSession.post(`/api/auth/login`).send({
+      username: 'bob@example.com',
+      password: 'password123',
+    });
+    res = await authenticatedSession
+      .post(`/api/authuser/posts/${mockPost._id}/comments`)
+      .send({ content: 'This is a comment by Bob' })
+      .expect(201);
+    expect(res.body.comment.content).toBe('This is a comment by Bob');
+    expect(res.body.comment.user).toBe(mockUsers[1]._id.toString());
+    expect(res.body.post._id).toBe(mockPost._id.toString());
+    expect(res.body.post.comments).toHaveLength(2);
+  });
+
+  it('should reject comment with invalid content', async () => {
+    const res = await authenticatedSession
+      .post(`/api/authuser/posts/${mockPost._id}/comments`)
+      .send({ content: ' ' })
+      .expect(400);
+    expect(res.body.errors[0].param).toBe('content');
+    expect(res.body.errors[0].msg).toBe('Content is required');
+  })
 });

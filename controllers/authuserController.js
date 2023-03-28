@@ -1,11 +1,15 @@
 const User = require('../models/user');
 const Post = require('../models/post');
+const Comment = require('../models/comment');
 const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 
 // @route   POST api/authuser/posts
 // @desc    Create a post by the authenticated user
 // @access  Private
+// @param   req.body.content: String, required
+//          req.user: User, required, the authenticated user
+// @return  { post: Post }
 exports.post_a_post = [
   // Check that the currentUser is logged in
   async (req, res, next) => {
@@ -64,6 +68,8 @@ exports.post_a_post = [
 // @route   GET api/authuser/posts
 // @desc    Get a list of posts by the authenticated user
 // @access  Private
+// @param   req.user: User, required, the authenticated user
+// @return  { posts: Post[] }
 exports.get_posts = async (req, res, next) => {
   // Check that the currentUser is logged in
   if (!req.user) {
@@ -92,6 +98,8 @@ exports.get_posts = async (req, res, next) => {
 // @route   POST api/authuser/send-friend-request/:userid
 // @desc    Send a friend request from the authenticated user to another user by userid
 // @access  Private
+// @param   req.params.userid: String, required, the userid of the user to send a friend request to
+// @return  { currentUser: User, userToSendRequestTo: User }
 exports.send_friend_request = async (req, res, next) => {
   // Check that the currentUser is logged in
   if (!req.user) {
@@ -145,6 +153,8 @@ exports.send_friend_request = async (req, res, next) => {
 // @route   POST api/authuser/accept-friend-request/:userid
 // @desc    Accept a friend request from another user by userid to the currentUser on POST
 // @access  Private
+// @param   req.params.userid: String, required, the userid of the user who sent the friend request
+// @return  { currentUser: User, userFriendRequestFrom: User }
 exports.accept_friend_request = async (req, res, next) => {
   // Check that the currentUser is logged in
   if (!req.user) {
@@ -197,6 +207,9 @@ exports.accept_friend_request = async (req, res, next) => {
 // @route   POST api/authuser/posts/:postid/give-like
 // @desc    Give a like to a post by postid by the authenticated user
 // @access  Private
+// @param   req.params.postid
+//          req.user: User, required, the authenticated user
+// @return  { post: Post }
 exports.give_like = async (req, res, next) => {
   // Check that the currentUser is logged in
   if (!req.user) {
@@ -224,6 +237,10 @@ exports.give_like = async (req, res, next) => {
     // Add the currentUser to the post's likes array
     post.likes.push(currentUser._id);
     await post.save();
+    return res.status(200).json({ 
+      message: 'Like added',
+      post
+    });
 
   } catch (err) {
     res.status(502).json({
@@ -231,3 +248,72 @@ exports.give_like = async (req, res, next) => {
     });
   }
 }
+
+// @route   POST api/authuser/posts/:postid/comments
+// @desc    Add a comment to a post by postid by the authenticated user
+// @access  Private
+// @param   req.params.postid
+//          req.user: User, required, the authenticated user
+// @return  { post: Post, comment: Comment }
+exports.post_a_comment = [
+  // Check that the currentUser is logged in
+  async (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    // Find the currentUser by req.user._id
+    const currentUser = await User.findById(req.user._id);
+    if (!currentUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    // Find the post by req.params.postid
+    const post = await Post.findById(req.params.postid);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+    next();
+  },
+
+  // Validate and sanitize the comment data
+  body('content', 'Content is required')
+    .trim().isLength({ min: 1 }).escape(),
+
+  // Process after validation and sanitization
+  async (req, res, next) => {
+    // Extract the validation errors from a request
+    const errors = validationResult(req);
+
+    // Create a Comment object with escaped and trimmed data
+    // Notice the user._id is a mongoose objectId()
+    const comment = new Comment({
+      content: req.body.content,
+      user: new mongoose.Types.ObjectId(req.user._id),
+      post: new mongoose.Types.ObjectId(req.params.postid),
+    });
+
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        errors: errors.array(),
+        comment
+      });
+    } else {
+      // Data is valid
+      try {
+        // Save comment to database
+        const savedComment = await comment.save();
+        // Reference the savedComment to the post
+        const post = await Post.findById(req.params.postid);
+        post.comments.push(savedComment);
+        await post.save();
+        res.status(201).json({
+          post,
+          comment: savedComment
+        });
+      } catch (err) {
+        res.status(502).json({
+          error: err,
+        });
+      }
+    }
+  }
+];
