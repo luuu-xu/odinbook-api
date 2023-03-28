@@ -29,7 +29,7 @@ let mockPostData = {
 
 beforeAll(async () => {
   await initializeMongoServer();
-  // Save test users to database
+  // Save mock users to database
   for (let mockUser of mockUsers) {
     bcrypt.hash(mockUser.password, 10, async (err, hashedPassword) => {
       if (err) {
@@ -194,8 +194,6 @@ describe('GET /api/authuser/posts', () => {
   });
 });
 
-
-// POST /users/:userId/send-friend-request
 describe('POST /api/authuser/send-friend-request/:userid', () => {
   let currentUser = mockUsers[0]; // Alice
   let userToSendRequestTo = mockUsers[1]; // Bob
@@ -375,5 +373,25 @@ describe('POST /api/authuser/accept-friend-request/:userid', () => {
       .post(`/api/authuser/accept-friend-request/${userFriendRequestFrom._id}`)
       .expect(400);
     expect(res.body.message).toBe('Already friends');
+  });
+});
+
+describe.only('POST /api/authuser/posts/:postid/give-like', () => {
+  let currentUser = mockUsers[0]; // Alice
+  let testSession = null;
+  let authenticatedSession;
+
+  beforeEach(async () => {
+    await User.find().then(users => console.log(users));
+    await clearMongoServer();
+    await User.find().then(users => console.log(users));
+  });
+
+  it('should return a 401 error if the user is not logged in', async () => {
+    await authenticatedSession.post('/api/auth/logout').expect(200);
+    const res = await authenticatedSession
+      .post(`/api/authuser/posts/${new mongoose.Types.ObjectId()}/give-like`)
+      .expect(401);
+    expect(res.body.message).toBe('Unauthorized');
   });
 });

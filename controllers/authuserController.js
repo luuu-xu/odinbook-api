@@ -3,6 +3,9 @@ const Post = require('../models/post');
 const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 
+// @route   POST api/authuser/posts
+// @desc    Create a post by the authenticated user
+// @access  Private
 exports.post_a_post = [
   // Check that the currentUser is logged in
   async (req, res, next) => {
@@ -58,6 +61,9 @@ exports.post_a_post = [
   }
 ];
 
+// @route   GET api/authuser/posts
+// @desc    Get a list of posts by the authenticated user
+// @access  Private
 exports.get_posts = async (req, res, next) => {
   // Check that the currentUser is logged in
   if (!req.user) {
@@ -83,8 +89,9 @@ exports.get_posts = async (req, res, next) => {
   }
 }
 
-
-// Make a friend request from currentUser to another user by userid on POST
+// @route   POST api/authuser/send-friend-request/:userid
+// @desc    Send a friend request from the authenticated user to another user by userid
+// @access  Private
 exports.send_friend_request = async (req, res, next) => {
   // Check that the currentUser is logged in
   if (!req.user) {
@@ -135,7 +142,9 @@ exports.send_friend_request = async (req, res, next) => {
   }
 }
 
-// Accept a friend request from another user by userid to the currentUser on POST
+// @route   POST api/authuser/accept-friend-request/:userid
+// @desc    Accept a friend request from another user by userid to the currentUser on POST
+// @access  Private
 exports.accept_friend_request = async (req, res, next) => {
   // Check that the currentUser is logged in
   if (!req.user) {
@@ -179,6 +188,44 @@ exports.accept_friend_request = async (req, res, next) => {
       userFriendRequestFrom
     }); 
   } catch(err) {
+    res.status(502).json({
+      error: err,
+    });
+  }
+}
+
+// @route   POST api/authuser/posts/:postid/give-like
+// @desc    Give a like to a post by postid by the authenticated user
+// @access  Private
+exports.give_like = async (req, res, next) => {
+  // Check that the currentUser is logged in
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    // Find the currentUser by req.user._id
+    const currentUser = await User.findById(req.user._id);
+    if (!currentUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Find the post by req.params.postid
+    const post = await Post.findById(req.params.postid);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    // Check if the currentUser has already liked this post
+    if (post.likes.includes(currentUser._id)) {
+      return res.status(400).json({ message: 'Already liked' });
+    }
+
+    // Add the currentUser to the post's likes array
+    post.likes.push(currentUser._id);
+    await post.save();
+
+  } catch (err) {
     res.status(502).json({
       error: err,
     });
