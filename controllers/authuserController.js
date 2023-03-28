@@ -38,6 +38,7 @@ exports.post_a_post = [
     // Notice the user._id is a mongoose objectId()
     const post = new Post({
       content: req.body.content,
+      // user: currentUser._id,
       user: new mongoose.Types.ObjectId(req.user._id),
     });
 
