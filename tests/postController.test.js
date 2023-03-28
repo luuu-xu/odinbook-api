@@ -39,8 +39,8 @@ beforeAll(async () => {
         return next(err);
       }
       mockUser.password = hashedPassword;
-      await mockUser.save();
     });
+    await mockUser.save();
   }
 });
 
@@ -64,6 +64,11 @@ describe('GET /api/posts/:postid', () => {
       password: 'password123',
     });
     authenticatedSession = testSession;
+  });
+
+  afterAll(async () => {
+    // Clear the database
+    await Post.deleteMany({});
   });
 
   it('should return 404 error if the post is not found', async () => {
@@ -90,7 +95,7 @@ describe('GET /api/posts/:postid', () => {
   });
 });
 
-describe.only('GET /api/posts', () => {
+describe('GET /api/posts', () => {
   let currentUser = mockUsers[0]; // Alice
   let mockPost = mockPostData;
   let testSession = null;
@@ -112,4 +117,24 @@ describe.only('GET /api/posts', () => {
       .expect(200);
     expect(res.body.posts).toHaveLength(0);
   });
+
+  it('should return a list of posts', async () => {
+    // Alice post some posts
+    let res = await authenticatedSession
+      .post('/api/authuser/posts').send(mockPostData).expect(201);
+    mockPost._id = res.body.post._id;
+    await authenticatedSession
+      .post('/api/authuser/posts').send({ content: 'Second post'}).expect(201);
+    await authenticatedSession
+      .post('/api/authuser/posts').send({ content: 'Third post'}).expect(201);
+    // Get the post
+    res = await authenticatedSession
+      .get('/api/posts')
+      .expect(200);
+    // console.log(res.body);
+    expect(res.body.posts).toHaveLength(3);
+    expect(res.body.posts[2].content).toBe(mockPost.content);
+    expect(res.body.posts[1].content).toBe('Second post');
+    expect(res.body.posts[0].content).toBe('Third post');
+  })
 });

@@ -14,7 +14,8 @@ const authRouter = require('./routes/auth');
 const authuserRouter = require('./routes/authuser');
 const postsRouter = require('./routes/posts');
 
-// // mongoose setup
+// mongoose setup
+// Using mongodb-memory-server when running tests
 if (process.env.NODE_ENV === 'TEST') {
   require('./tests/mongoConfigTesting.js');
 } else {
