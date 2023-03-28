@@ -89,3 +89,27 @@ describe('GET /api/posts/:postid', () => {
     expect(res.body.post.user._id).toBe(currentUser._id.toString());
   });
 });
+
+describe.only('GET /api/posts', () => {
+  let currentUser = mockUsers[0]; // Alice
+  let mockPost = mockPostData;
+  let testSession = null;
+  let authenticatedSession;
+
+  beforeEach(async () => {
+    // Log in as Alice
+    testSession = session(app);
+    await testSession.post('/api/auth/login').send({
+      username: currentUser.username,
+      password: 'password123',
+    });
+    authenticatedSession = testSession;
+  });
+
+  it('should return a empty array if no posts are found', async () => {
+    const res = await authenticatedSession
+      .get('/api/posts')
+      .expect(200);
+    expect(res.body.posts).toHaveLength(0);
+  });
+});

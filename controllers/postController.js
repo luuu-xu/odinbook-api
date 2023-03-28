@@ -2,14 +2,17 @@ const User = require('../models/user');
 const Post = require('../models/post');
 
 // @route   GET api/posts
-// @desc    Get a list of posts
+// @desc    Get a list of posts sorted by timestamp
 // @access  Public
 // @param
 // @return  { posts: Post[] }
 exports.get_posts = async (req, res, next) => {
   await Post.find()
+    .sort({ timestamp: -1})
     .then(posts => {
-      res.status(200).json(posts);
+      res.status(200).json({
+        posts: posts
+      });
     })
     .catch(err => {
       res.status(502).json({
@@ -30,7 +33,9 @@ exports.get_a_post = async (req, res, next) => {
       if (!post) {
         return res.status(404).json({ message: 'Post not found' });
       }
-      res.status(200).json({ post });
+      res.status(200).json({ 
+        post: post
+      });
     })
     .catch(err => {
       res.status(502).json({
