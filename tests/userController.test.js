@@ -46,8 +46,8 @@ beforeAll(async () => {
         return next(err);
       }
       mockUser.password = hashedPassword;
+      await mockUser.save();
     });
-    await mockUser.save();
   }
 });
 
