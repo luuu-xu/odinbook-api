@@ -6,7 +6,7 @@ const LocalStrategy = require('passport-local');
 // Passport local strategy setup
 passport.use(new LocalStrategy(
   function verify(username, password, done) {
-    User.findOne({ username })
+    User.findOne({ 'username': username })
       .then(user => {
         if (!user) {
           return done(null, false, { message: 'Incorrect username' });
@@ -73,9 +73,13 @@ exports.user_signup = async (req, res, next) => {
 exports.user_login = [
   passport.authenticate('local', {
     failureMessage: true,
+    // failureRedirect: '/api/auth/login',
   }), 
   (req, res) => {
-    res.status(200).json({ message: 'logged in' });
+    res.status(200).json({ 
+      message: 'logged in', 
+      user: req.user 
+    });
   },
 ];
 

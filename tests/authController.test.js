@@ -30,11 +30,6 @@ beforeEach(async () => {
   testSession = session(app);
 });
 
-// afterEach(async () => {
-//   // await testSession.post('/api/auth/logout').expect(200);
-//   testSession = null;
-// });
-
 describe('POST /api/auth/signup', () => {
   let authenticatedSession;
 
