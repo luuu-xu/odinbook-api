@@ -3,6 +3,7 @@ const Post = require('../models/post');
 const Comment = require('../models/comment');
 const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
+const passport = require('passport');
 
 // @route   POST api/authuser/posts
 // @desc    Create a post by the authenticated user
@@ -11,6 +12,8 @@ const { body, validationResult } = require('express-validator');
 //          req.user: User, required, the authenticated user
 // @return  { post: Post }
 exports.post_a_post = [
+  // Add jwt authentication to the request
+  passport.authenticate('jwt', { session: false }), 
   // Check that the currentUser is logged in
   async (req, res, next) => {
     if (!req.user) {

@@ -5,6 +5,7 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 const session = require('express-session');
 const passport = require('passport');
+const cors = require('cors');
 require('dotenv').config();
 
 var indexRouter = require('./routes/index');
@@ -23,6 +24,11 @@ if (process.env.NODE_ENV === 'TEST') {
 }
 
 var app = express();
+
+// cors setup
+app.use(cors({
+  origin: 'http://localhost:3000',
+}));
 
 // passport session setup
 app.use(session({
