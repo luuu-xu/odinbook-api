@@ -9,6 +9,13 @@ const Post = require('../models/post');
 exports.get_posts = async (req, res, next) => {
   await Post.find()
     .sort({ timestamp: -1})
+    .populate('user')
+    .populate({
+      path: 'comments',
+      populate: {
+        path: 'user',
+      }
+    })
     .then(posts => {
       res.status(200).json({
         posts: posts

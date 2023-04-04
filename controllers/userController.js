@@ -27,6 +27,7 @@ exports.get_users = async (req, res, next) => {
 // @return  { user: User }
 exports.get_a_user = async (req, res, next) => {
   await User.findById(req.params.userid)
+    .populate('friends friend_requests_sent friend_requests_received')
     .then(user => {
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
