@@ -74,30 +74,112 @@ exports.post_a_post = [
 // @access  Private
 // @param   req.user: User, required, the authenticated user
 // @return  { posts: Post[] }
-exports.get_posts = async (req, res, next) => {
-  // Check that the currentUser is logged in
-  if (!req.user) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
-  // Find and check currentUser by req.user._id
-  const currentUser = await User.findById(req.user._id);
-  if (!currentUser) {
-    return res.status(404).json({ message: 'User not found' });
-  }
+exports.get_posts = [
+  // Add jwt authentication to the request
+  passport.authenticate('jwt', { session: false }), 
 
-  // Find all posts
-  try {
-    await User.findById(req.user._id).populate('posts')
-      .then(user => {
-        // console.log('post_list', user.posts);
-        res.status(200).json({ posts: user.posts });
-      })
-  } catch (err) {
-    res.status(502).json({
-      error: err,
-    });
+  async (req, res, next) => {
+    // Check that the currentUser is logged in
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    // Find and check currentUser by req.user._id
+    const currentUser = await User.findById(req.user._id);
+    if (!currentUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Find all posts
+    try {
+      await Post.find({ user: req.user._id })
+        .populate('user')
+        .populate({
+          path: 'comments',
+          populate: {
+            path: 'user',
+          }
+        })
+        .then(posts => {
+          // console.log('post_list', user.posts);
+          res.status(200).json({ posts: posts });
+        })
+    } catch (err) {
+      res.status(502).json({
+        error: err,
+      });
+    }
   }
-}
+]
+
+// @route   GET api/authuser/friends-posts
+// @desc    Get a sorted list of posts by the friends of authenticated user
+// @access  Private
+// @param   req.user: User, required, the authenticated user
+// @return  { posts: Post[] }
+exports.get_friends_posts = [
+  // Add jwt authentication to the request
+  passport.authenticate('jwt', { session: false }), 
+
+  async (req, res, next) => {
+    // Check that the currentUser is logged in
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    // Find and check currentUser by req.user._id
+    const currentUser = await User.findById(req.user._id);
+    if (!currentUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Find all posts by friends
+    try {
+      await User.findById(req.user._id)
+        .populate({
+          path: 'friends',
+          populate: {
+            path: 'posts',
+            populate: {
+              path: 'user',
+            }
+          }
+        })
+        .populate({
+          path: 'friends',
+          populate: {
+            path: 'posts',
+            populate: {
+              path: 'comments',
+              populate: {
+                path: 'user',
+              }
+            }
+          }
+        })
+        .then(result => {
+          const posts = [];
+          result.friends.map((friend) => {
+            friend.posts.map((post) => {
+                posts.push(post);
+              });
+          });
+          posts.sort((a, b) => {
+            if (a.timestamp > b.timestamp) {
+              return -1;
+            }
+            if (a.timestamp < b.timestamp) {
+              return 1;
+            }
+          })
+          res.status(200).json({ posts: posts });
+        })
+    } catch (err) {
+      console.log(err);
+      res.status(502).json({
+        error: err,
+      });
+    }
+  }
+]
 
 // @route   POST api/authuser/send-friend-request/:userid
 // @desc    Send a friend request from the authenticated user to another user by userid
