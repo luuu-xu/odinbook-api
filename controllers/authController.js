@@ -62,6 +62,13 @@ passport.deserializeUser((user, done) => {
 });
 
 // Create a new user in the database on POST
+// @route   POST api/auth/signup
+// @desc    Post a new user to the database
+// @access  Private
+// @param   req.body.username: String, required, the username of the user
+//          req.body.password: String, required, the password of the user
+//          req.body.name: String, required, the name of the user
+// @return  { user: User }
 exports.user_signup = [
   // Validate and sanitize the sign up data
   body('name', 'Name is required')
@@ -119,6 +126,52 @@ exports.user_signup = [
     };
   }
 ];
+
+// Login a new user in the database from OAuth provider on POST
+// @route   POST api/auth/oauth-login
+// @desc    Post a new user from OAuth provider
+// @access  Private
+// @param   req.body.username: String, required, the username of the user
+//          req.body.name: String, required, the name of the user
+//          req.body.profile_pic_url: String, required, the profile pic url of the user
+// @return  { user: User }
+exports.oauth_user_login = [
+  async (req, res, next) => {
+    try {
+      User.findOne({ username: req.body.username })
+      .then(user => {
+        if (user) {
+          const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET);
+          return res.status(200).json({
+            message: 'logged in',
+            user: user,
+            token
+          });
+        }
+        try {
+          const user = new User({
+            name: req.body.name,
+            username: req.body.username,
+            profile_pic_url: req.body.profile_pic_url,
+          });
+          user.save();
+          // res.status(201).json(result); 
+          const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET);
+          return res.status(200).json({
+            message: 'logged in',
+            user: user,
+            token
+          });
+        } catch(err) {
+          return next(err);
+        }
+      })
+      .catch(err => next(err));
+    } catch(err) {
+      return next(err);
+    };
+  } 
+]
 
 // Log in the user with passport local strategy authentication on POST
 exports.user_login = [
