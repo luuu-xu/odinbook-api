@@ -8,7 +8,10 @@ const auth_controller = require('../controllers/authController');
 router.post('/signup', auth_controller.user_signup);
 
 // POST login route for oauth login authentication
-router.post('/oauth-login', auth_controller.oauth_user_login);
+router.post('/facebook-login', auth_controller.facebook_login);
+
+// POST visitor login route
+router.post('/visitor-login', auth_controller.visitor_login);
 
 // POST login route for local username and password authentication
 router.post('/login', auth_controller.user_login);

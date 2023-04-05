@@ -33,6 +33,7 @@ const opts = {
   secretOrKey: process.env.JWT_SECRET,
 };
 
+// Passport JWT strategy setup
 passport.use(new JwtStrategy(opts, async function(jwt_payload, done) {
   // console.log('jwt_payload', jwt_payload);
   await User.findById(jwt_payload._id)
@@ -128,14 +129,14 @@ exports.user_signup = [
 ];
 
 // Login a new user in the database from OAuth provider on POST
-// @route   POST api/auth/oauth-login
+// @route   POST api/auth/facebook-login
 // @desc    Post a new user from OAuth provider
 // @access  Private
 // @param   req.body.username: String, required, the username of the user
 //          req.body.name: String, required, the name of the user
 //          req.body.profile_pic_url: String, required, the profile pic url of the user
 // @return  { user: User }
-exports.oauth_user_login = [
+exports.facebook_login = [
   async (req, res, next) => {
     try {
       User.findOne({ username: req.body.username })
@@ -171,20 +172,45 @@ exports.oauth_user_login = [
       return next(err);
     };
   } 
-]
+];
+
+// Login a visitor in the database on POST
+// @route   POST api/auth/visitor-login
+// @desc    Post a new user as visitor and delete the user later
+// @access  Private
+// @param   
+// @return  { user: User }
+exports.visitor_login = [
+  async (req, res, next) => {
+    // Create a visitorString in the format of visitor-<randomNumber>
+    const randomNumber = Math.floor(Math.random() * (1000 - 0 + 1) + 0);
+    const visitorString = 'visitor-' + randomNumber;
+    bcrypt.hash(visitorString, 10, async (err, hashedPassword) => {
+      if (err) {
+        return next(err);
+      }
+      try {
+        const user = new User({
+          name: visitorString,
+          username: visitorString,
+          password: hashedPassword,
+        });
+        user.save();
+        const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET);
+        return res.status(200).json({
+          message: 'logged in',
+          user: user,
+          token
+        });
+      } catch(err) {
+        return next(err);
+      }
+    });
+  }
+];
 
 // Log in the user with passport local strategy authentication on POST
 exports.user_login = [
-  // passport.authenticate('local', {
-  //   failureMessage: true,
-  //   // failureRedirect: '/api/auth/login',
-  // }), 
-  // (req, res) => {
-  //   res.status(200).json({ 
-  //     message: 'logged in', 
-  //     user: req.user 
-  //   });
-  // },
   passport.authenticate('local', {
     failureMessage: true,
   }),
