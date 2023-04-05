@@ -70,7 +70,7 @@ exports.post_a_post = [
 ];
 
 // @route   GET api/authuser/posts
-// @desc    Get a list of posts by the authenticated user
+// @desc    Get a sorted list of posts by the authenticated user
 // @access  Private
 // @param   req.user: User, required, the authenticated user
 // @return  { posts: Post[] }
@@ -101,7 +101,8 @@ exports.get_posts = [
         })
         .then(posts => {
           // console.log('post_list', user.posts);
-          res.status(200).json({ posts: posts });
+          const sortedPosts = posts.sort((a, b) => b.timestamp - a.timestamp);
+          res.status(200).json({ posts: sortedPosts });
         })
     } catch (err) {
       res.status(502).json({
@@ -422,3 +423,66 @@ exports.post_a_comment = [
     }
   }
 ];
+
+// @route   PUT api/authuser/edit-profile
+// @desc    Change the profile picture and name of the authenticated user
+// @access  Private
+// @param   req.body.name: String, required, the new name of the user
+//          req.body.profile_pic_url: String, required, the new profile picture of the user
+//          req.user: User, required, the authenticated user
+// @return  { user: User }
+exports.edit_profile = [
+  // Add jwt authentication to the request
+  passport.authenticate('jwt', { session: false }),
+
+  // Check that the currentUser is logged in
+  async (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    // Find the currentUser by req.user._id
+    const currentUser = await User.findById(req.user._id);
+    if (!currentUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    next();
+  },
+
+  // Validate and sanitize the comment data
+  body('name', 'Name is required')
+    .trim().isLength({ min: 1 }).escape(),
+  body('profile_pic_url', 'Profile picture is required')
+    .trim().isURL(),
+  
+  // Process after validation and sanitization
+  async (req, res, next) => {
+    // Extract the validation errors from a request
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        errors: errors.array(),
+      });
+    } else {
+      // Data is valid
+      try {
+        // Update the currentUser's profile
+        const user = await User.findByIdAndUpdate(
+          req.user._id,
+          {
+            name: req.body.name,
+            profile_pic_url: req.body.profile_pic_url
+          }
+        );
+        res.status(200).json({
+          user,
+        });
+      } catch (err) {
+        res.status(502).json({
+          error: err,
+        });
+      }
+    }
+  }
+
+]

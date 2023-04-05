@@ -24,4 +24,7 @@ router.post('/posts/:postid/give-like', authuser_controller.give_like);
 // POST for the authenticated user to comment a post by postid
 router.post('/posts/:postid/comments', authuser_controller.post_a_comment);
 
+// PUT for the authenticated user to edit its profile name and image
+router.put('/edit-profile', authuser_controller.edit_profile);
+
 module.exports = router;
