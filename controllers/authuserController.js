@@ -1,8 +1,10 @@
 const User = require('../models/user');
 const Post = require('../models/post');
 const Comment = require('../models/comment');
+const Image = require('../models/image');
 const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
+const uploadImage = require('./helpers/uploadImage');
 const passport = require('passport');
 
 // @route   POST api/authuser/posts
@@ -10,12 +12,19 @@ const passport = require('passport');
 // @access  Private
 // @param   req.body.content: String, required
 //          req.user: User, required, the authenticated user
+//          req.file: Multer.File, optional, the uploaded image
 // @return  { post: Post }
 exports.post_a_post = [
+  // Upload image middleware helper with Multer
+  uploadImage,
+
   // Add jwt authentication to the request
   passport.authenticate('jwt', { session: false }), 
+
   // Check that the currentUser is logged in
   async (req, res, next) => {
+    console.log('req.file', req.file);
+    console.log('req.body', req.body);
     if (!req.user) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
@@ -37,12 +46,23 @@ exports.post_a_post = [
     // Extract the validation errors from a request
     const errors = validationResult(req);
 
+    // Create a Image object with the accepted uploaded image or empty when image is rejected
+    let image;
+    console.log('req.file', req.file);
+    if (req.file) {
+      image = new Image({
+        filename: req.file.originalname,
+        contentType: req.file.mimetype,
+        data: req.file.buffer,
+      });
+    }
+
     // Create a Post object with escaped and trimmed data
     // Notice the user._id is a mongoose objectId()
     const post = new Post({
       content: req.body.content,
-      // user: currentUser._id,
       user: new mongoose.Types.ObjectId(req.user._id),
+      image: image
     });
 
     if (!errors.isEmpty()) {
@@ -53,6 +73,8 @@ exports.post_a_post = [
     } else {
       // Data is valid
       try {
+        // Save the image to the database
+        const savedImage = await image.save();
         // Save post to database
         const savedPost = await post.save();
         // Reference the savedPost to the currentUser
@@ -61,6 +83,7 @@ exports.post_a_post = [
         await currentUser.save();
         res.status(201).json({ post: savedPost });
       } catch (err) {
+        console.log(err);
         res.status(502).json({
           error: err,
         });
@@ -99,6 +122,7 @@ exports.get_posts = [
             path: 'user',
           }
         })
+        .populate('image')
         .then(posts => {
           // console.log('post_list', user.posts);
           const sortedPosts = posts.sort((a, b) => b.timestamp - a.timestamp);
@@ -141,6 +165,15 @@ exports.get_friends_posts = [
             path: 'posts',
             populate: {
               path: 'user',
+            }
+          }
+        })
+        .populate({
+          path: 'friends',
+          populate: {
+            path: 'posts',
+            populate: {
+              path: 'image',
             }
           }
         })
