@@ -48,7 +48,6 @@ exports.post_a_post = [
 
     // Create a Image object with the accepted uploaded image or empty when image is rejected
     let image;
-    console.log('req.file', req.file);
     if (req.file) {
       image = new Image({
         filename: req.file.originalname,
@@ -73,8 +72,10 @@ exports.post_a_post = [
     } else {
       // Data is valid
       try {
-        // Save the image to the database
-        const savedImage = await image.save();
+        // Save the image to the database if there is one
+        if (image) {
+          await image.save();
+        }
         // Save post to database
         const savedPost = await post.save();
         // Reference the savedPost to the currentUser
@@ -377,6 +378,57 @@ exports.give_like = [
       });
 
     } catch (err) {
+      res.status(502).json({
+        error: err,
+      });
+    }
+  },
+];
+
+// @route   DELETE api/authuser/posts/:postid/cancel-like
+// @desc    Cancel a like to a post by postid by the authenticated user
+// @access  Private
+// @param   req.params.postid
+//          req.user: User, required, the authenticated user
+// @return  { post: Post }
+exports.cancel_like = [
+  // Add jwt authentication to the request
+  passport.authenticate('jwt', { session: false }), 
+
+  async (req, res, next) => {
+    // Check that the currentUser is logged in
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    try {
+      // Find the currentUser by req.user._id
+      const currentUser = await User.findById(req.user._id);
+      if (!currentUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Find the post by req.params.postid
+      const post = await Post.findById(req.params.postid);
+      if (!post) {
+        return res.status(404).json({ message: 'Post not found' });
+      }
+
+      // Check if the currentUser has already liked this post
+      if (!post.likes.includes(currentUser._id)) {
+        return res.status(400).json({ message: 'Like not found' });
+      }
+
+      // Remove the currentUser from the post's likes array
+      post.likes.pull(currentUser._id);
+      await post.save();
+      return res.status(201).json({ 
+        message: 'Like cancelled',
+        post
+      });
+
+    } catch (err) {
+      console.log(err);
       res.status(502).json({
         error: err,
       });

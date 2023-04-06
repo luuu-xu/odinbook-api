@@ -9,7 +9,6 @@ const uploadImage = multer({
   fileFilter (req, file, cb) {
     // Only allow jpeg/jpg files.
     if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/jpg') {
-      console.log('multer ran once');
       cb(null, true);
     } else {
       cb(null, false);

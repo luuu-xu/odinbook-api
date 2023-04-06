@@ -21,6 +21,9 @@ router.post('/accept-friend-request/:userid', authuser_controller.accept_friend_
 // POST for the authenticated user to like a post by postid
 router.post('/posts/:postid/give-like', authuser_controller.give_like);
 
+// DELETE for the authenticated user to cancel the like a post by postid
+router.delete('/posts/:postid/cancel-like', authuser_controller.cancel_like);
+
 // POST for the authenticated user to comment a post by postid
 router.post('/posts/:postid/comments', authuser_controller.post_a_comment);
 
