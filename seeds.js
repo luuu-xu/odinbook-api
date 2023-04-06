@@ -1,5 +1,8 @@
 const { faker } = require('@faker-js/faker');
 const User = require('./models/user');
+const Post = require('./models/post');
+const Comment = require('./models/comment');
+const Image = require('./models/image');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
@@ -13,6 +16,14 @@ function createRandomUser() {
   }
 }
 
+function createHelloPost({ name, userId }) {
+  const randomEmoji = faker.internet.emoji();
+  return {
+    content: `Hello from ${name}! ${randomEmoji}`,
+    user: userId,
+  }
+}
+
 async function signupRandomUsers(count) {
   for (let i = 0; i < count; i++) {
     const userData = createRandomUser();
@@ -20,6 +31,12 @@ async function signupRandomUsers(count) {
     user.password = bcrypt.hashSync(user.password, 10);
     await user.save();
     console.log(`Saved user ${user.name}`);
+    const postData = createHelloPost({ name: user.name, userId: user._id });
+    const post = new Post(postData);
+    await post.save();
+    user.posts.push(post);
+    await user.save();
+    console.log(`Saved post ${post.content}`);
   }
 }
 
@@ -28,6 +45,7 @@ async function signupAdminUser() {
     name: 'Admin',
     username: 'admin',
     password: 'admin',
+    profile_pic_url: 'https://avatars.githubusercontent.com/u/97932191?s=48&v=4',
   });
   admin.password = bcrypt.hashSync(admin.password, 10);
   await admin.save();
@@ -40,6 +58,9 @@ async function main() {
   console.log('About to connect');
   await mongoose.connect(mongoDB);
   await User.deleteMany();
+  await Post.deleteMany();
+  await Comment.deleteMany();
+  await Image.deleteMany();
   await signupRandomUsers(3);
   await signupAdminUser();
   console.log('Closing MongoDB');

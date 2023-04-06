@@ -536,8 +536,8 @@ exports.edit_profile = [
   // Validate and sanitize the comment data
   body('name', 'Name is required')
     .trim().isLength({ min: 1 }).escape(),
-  body('profile_pic_url', 'Profile picture is required')
-    .trim().isURL(),
+  // body('profile_pic_url', 'Profile picture is required')
+  //   .trim().isURL(),
   
   // Process after validation and sanitization
   async (req, res, next) => {

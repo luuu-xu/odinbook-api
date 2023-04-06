@@ -195,7 +195,21 @@ exports.visitor_login = [
           username: visitorString,
           password: hashedPassword,
         });
-        user.save();
+        await user.save();
+
+        // Add admin as the friend of the visitor
+        try {
+          const admin = await User.findOne({ username: 'admin' });
+          admin.friends.push(user._id);
+          user.friends.push(admin._id);
+          await user.save();
+          await admin.save();
+        } catch (err) {
+          console.log(err);
+          return next(err);
+        }
+
+        // Sign JWT back to the user
         const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET);
         return res.status(200).json({
           message: 'logged in',
