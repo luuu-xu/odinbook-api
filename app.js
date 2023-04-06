@@ -34,7 +34,7 @@ app.use(helmet());
 // Express-rate-limit setup
 const limiter = RateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 20, // limit each IP to 20 requests per windowMs
+  max: 60, // limit each IP to 60 requests per windowMs
 });
 app.use(limiter);
 
