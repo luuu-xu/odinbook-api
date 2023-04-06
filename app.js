@@ -39,9 +39,7 @@ const limiter = RateLimit({
 app.use(limiter);
 
 // cors setup
-app.use(cors({
-  origin: 'http://localhost:3000',
-}));
+app.use(cors());
 
 // passport session setup
 app.use(session({

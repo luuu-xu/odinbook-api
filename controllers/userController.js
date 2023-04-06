@@ -13,6 +13,7 @@ exports.get_users = async (req, res, next) => {
       });
     })
     .catch(err => {
+      console.log(err);
       res.status(502).json({
         error: err,
       });
