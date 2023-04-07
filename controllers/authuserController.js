@@ -123,9 +123,7 @@ exports.get_posts = [
             path: 'user',
           }
         })
-        .populate('image')
         .then(posts => {
-          // console.log('post_list', user.posts);
           const sortedPosts = posts.sort((a, b) => b.timestamp - a.timestamp);
           res.status(200).json({ posts: sortedPosts });
         })
@@ -166,15 +164,6 @@ exports.get_friends_posts = [
             path: 'posts',
             populate: {
               path: 'user',
-            }
-          }
-        })
-        .populate({
-          path: 'friends',
-          populate: {
-            path: 'posts',
-            populate: {
-              path: 'image',
             }
           }
         })

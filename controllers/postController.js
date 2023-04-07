@@ -1,4 +1,3 @@
-const User = require('../models/user');
 const Post = require('../models/post');
 
 // @route   GET api/posts
@@ -10,7 +9,6 @@ exports.get_posts = async (req, res, next) => {
   await Post.find()
     .sort({ timestamp: -1})
     .populate('user')
-    .populate('image')
     .populate({
       path: 'comments',
       populate: {
