@@ -7,16 +7,15 @@ const session = require('express-session');
 const passport = require('passport');
 const cors = require('cors');
 require('dotenv').config();
+const compression = require('compression');
+const helmet = require('helmet');
+const RateLimit = require('express-rate-limit');
 
-var indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
 const authRouter = require('./routes/auth');
 const authuserRouter = require('./routes/authuser');
 const postsRouter = require('./routes/posts');
 const imagesRouter = require('./routes/images');
-const compression = require('compression');
-const helmet = require('helmet');
-const RateLimit = require('express-rate-limit');
 
 // mongoose setup
 // Using mongodb-memory-server when running tests
@@ -65,7 +64,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Compression setup
 app.use(compression());
 
-app.use('/', indexRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/authuser', authuserRouter);
 app.use('/api/users', usersRouter);
