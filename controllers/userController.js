@@ -82,6 +82,15 @@ exports.get_posts = async (req, res, next) => {
         path: 'user',
       }
     })
+    .populate({
+      path: 'posts',
+      populate: {
+        path: 'comments',
+        populate: {
+          path: 'user',
+        }
+      }
+    })
     .then(user => {
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
