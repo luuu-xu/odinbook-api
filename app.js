@@ -39,7 +39,9 @@ const limiter = RateLimit({
 app.use(limiter);
 
 // cors setup
-app.use(cors());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN,
+}));
 
 // passport session setup
 app.use(session({
