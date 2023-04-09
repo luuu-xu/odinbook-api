@@ -1,30 +1,54 @@
 const Post = require('../models/post');
 
-// @route   GET api/posts
-// @desc    Get a list of posts sorted by timestamp
+// @route   GET api/posts?startId=:startId
+// @desc    Get a list of 10 posts sorted by _id
 // @access  Public
-// @param
+// @param   req.query.startId: String, optinal, the startId of the post to get, if not provided, the first post
 // @return  { posts: Post[] }
 exports.get_posts = async (req, res, next) => {
-  await Post.find()
-    .sort({ timestamp: -1})
-    .populate('user')
-    .populate({
-      path: 'comments',
-      populate: {
-        path: 'user',
-      }
-    })
-    .then(posts => {
-      res.status(200).json({
-        posts: posts
+  if (req.query.startId) {
+    await Post.find({ _id: { $lt: req.query.startId } })
+      .sort({ _id: -1 })
+      .limit( 10 )
+      .populate('user')
+      .populate({
+        path: 'comments',
+        populate: {
+          path: 'user',
+        }
+      })
+      .then(posts => {
+        res.status(200).json({
+          posts: posts
+        });
+      })
+      .catch(err => {
+        res.status(502).json({
+          error: err,
+        });
       });
-    })
-    .catch(err => {
-      res.status(502).json({
-        error: err,
+  } else {
+    await Post.find()
+      .sort({ _id: -1 })
+      .limit( 10 )
+      .populate('user')
+      .populate({
+        path: 'comments',
+        populate: {
+          path: 'user',
+        }
+      })
+      .then(posts => {
+        res.status(200).json({
+          posts: posts
+        });
+      })
+      .catch(err => {
+        res.status(502).json({
+          error: err,
+        });
       });
-    });
+    }
 }
 
 // @route   GET api/posts/:postid

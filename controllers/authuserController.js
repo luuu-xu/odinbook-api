@@ -93,10 +93,11 @@ exports.post_a_post = [
   }
 ];
 
-// @route   GET api/authuser/posts
-// @desc    Get a sorted list of posts by the authenticated user
+// @route   GET api/authuser/posts?startId=:startId
+// @desc    Get a sorted list of 10 posts by the authenticated user
 // @access  Private
 // @param   req.user: User, required, the authenticated user
+//          req.query.startId: String, optinal, the startId of the post to get, if not provided, the first post
 // @return  { posts: Post[] }
 exports.get_posts = [
   // Add jwt authentication to the request
@@ -114,8 +115,11 @@ exports.get_posts = [
     }
 
     // Find all posts
-    try {
+    if (req.query.startId) {
       await Post.find({ user: req.user._id })
+        .where('_id').lt(req.query.startId)
+        .sort({ _id: -1 })
+        .limit( 10 )
         .populate('user')
         .populate({
           path: 'comments',
@@ -124,13 +128,32 @@ exports.get_posts = [
           }
         })
         .then(posts => {
-          const sortedPosts = posts.sort((a, b) => b.timestamp - a.timestamp);
-          res.status(200).json({ posts: sortedPosts });
+          res.status(200).json({ posts: posts });
         })
-    } catch (err) {
-      res.status(502).json({
-        error: err,
-      });
+        .catch(err => {
+          res.status(502).json({
+            error: err,
+          });
+        });
+    } else {
+      await Post.find({ user: req.user._id })
+        .sort({ _id: -1 })
+        .limit( 10 )
+        .populate('user')
+        .populate({
+          path: 'comments',
+          populate: {
+            path: 'user',
+          }
+        })
+        .then(posts => {
+          res.status(200).json({ posts: posts });
+        })
+        .catch(err => {
+          res.status(502).json({
+            error: err,
+          });
+        });
     }
   }
 ]
@@ -201,6 +224,76 @@ exports.get_friends_posts = [
       res.status(502).json({
         error: err,
       });
+    }
+  }
+]
+
+// @route   GET api/authuser/feed-posts?startId=:startId
+// @desc    Get a sorted list of 10 posts by the friends of and the authenticated user
+// @access  Private
+// @param   req.user: User, required, the authenticated user
+//          req.query.startId: String, optinal, the startId of the post to get, if not provided, the first post
+// @return  { posts: Post[] }
+exports.get_feed_posts = [
+  // Add jwt authentication to the request
+  passport.authenticate('jwt', { session: false }), 
+
+  async (req, res, next) => {
+    // Check that the currentUser is logged in
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    // Find and check currentUser by req.user._id
+    const currentUser = await User.findById(req.user._id);
+    if (!currentUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Array of _ids of the authuser and the friends
+    const usersIds = [currentUser._id, ...currentUser.friends];
+
+    // Find all posts
+    if (req.query.startId) {
+      await Post.find({ user : { $in: usersIds } })
+        .where('_id').lt(req.query.startId)
+        .sort({ _id: -1 })
+        .limit( 10 )
+        .populate('user')
+        .populate({
+          path: 'comments',
+          populate: {
+            path: 'user',
+          }
+        })
+        .then(posts => {
+          res.status(200).json({ posts: posts });
+        })
+        .catch(err => {
+          res.status(502).json({
+            error: err,
+          });
+        });
+    } else {
+      await Post.find({ user : { $in: usersIds } })
+        .sort({ _id: -1 })
+        .limit( 10 )
+        .populate('user')
+        .populate({
+          path: 'comments',
+          populate: {
+            path: 'user',
+          }
+        })
+        .then(posts => {
+          console.log(posts);
+          res.status(200).json({ posts: posts });
+        })
+        .catch(err => {
+          console.log(err);
+          res.status(502).json({
+            error: err,
+          });
+        });
     }
   }
 ]

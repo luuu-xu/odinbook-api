@@ -1,3 +1,4 @@
+const Post = require('../models/post');
 const User = require('../models/user');
 
 // @route   GET api/users
@@ -69,39 +70,56 @@ exports.get_friends = async (req, res, next) => {
 }
 
 // Return a list of posts made by the user with userid on GET
-// @route   GET api/users/:userid/posts
-// @desc    Get a list of posts made by the user with userid
+// @route   GET api/users/:userid/posts?startId=startId
+// @desc    Get a list of 10 posts made by the user with userid 
 // @access  Public
 // @param   req.params.userid: String, required, the userid of the user to get
+//          req.query.startId: String, optinal, the startId of the post to get, if not provided, the first post
 // @return  { posts: Post[] }
 exports.get_posts = async (req, res, next) => {
-  await User.findById(req.params.userid)
-    .populate({
-      path: 'posts',
-      populate: {
-        path: 'user',
-      }
-    })
-    .populate({
-      path: 'posts',
-      populate: {
+  if (req.query.startId) {
+    await Post.find({ user: req.params.userid })
+      .where('_id').lt(req.query.startId)
+      .sort({ _id: -1 })
+      .limit(10)
+      .populate('user')
+      .populate({
         path: 'comments',
         populate: {
           path: 'user',
         }
-      }
-    })
-    .then(user => {
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-      res.status(200).json({
-        posts: user.posts
+      })
+      .then(posts => {
+        res.status(200).json({
+          posts: posts
+        });
+      })
+      .catch(err => {
+        res.status(502).json({
+          error: err,
+        });
       });
-    })
-    .catch(err => {
-      res.status(502).json({
-        error: err,
+  } else {
+    await Post.find({ user: req.params.userid })
+      // .where('_id').lt(req.query.startId)
+      .sort({ _id: -1 })
+      .limit(10)
+      .populate('user')
+      .populate({
+        path: 'comments',
+        populate: {
+          path: 'user',
+        }
+      })
+      .then(posts => {
+        res.status(200).json({
+          posts: posts
+        });
+      })
+      .catch(err => {
+        res.status(502).json({
+          error: err,
+        });
       });
-    });
+  }
 }

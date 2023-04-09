@@ -12,6 +12,9 @@ router.get('/posts', authuser_controller.get_posts);
 // GET a list of posts by the friends of the authenticated user
 router.get('/friends-posts', authuser_controller.get_friends_posts);
 
+// GET a list of posts by the authuser and the friends
+router.get('/feed-posts', authuser_controller.get_feed_posts);
+
 // POST a friend request from the currentUser to another user by userid
 router.post('/send-friend-request/:userid', authuser_controller.send_friend_request);
 
