@@ -73,11 +73,14 @@ passport.deserializeUser((user, done) => {
 exports.user_signup = [
   // Validate and sanitize the sign up data
   body('name', 'Name is required')
-    .trim().isLength({ min: 1 }).escape(),
+    .trim().isLength({ min: 1 }),
+    // .escape(),
   body('username', 'Username is required')
-    .trim().isLength({ min: 1 }).escape(),
+    .trim().isLength({ min: 1 }),
+    // .escape(),
   body('password', 'Password is required at least 6 characters')
-    .trim().isLength({ min: 6 }).escape(),
+    .trim().isLength({ min: 6 }),
+    // .escape(),
 
   async (req, res, next) => {
     // Process the validation errors
