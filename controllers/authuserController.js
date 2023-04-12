@@ -39,7 +39,8 @@ exports.post_a_post = [
 
   // Validate and sanitize the post data
   body('content', 'Content is required')
-    .trim().isLength({ min: 1 }).escape(),
+    .trim().isLength({ min: 1 }),
+    // .escape(), // Do not escape the content, React has contexutal escaping
   
   // Process after validation and sanitization
   async (req, res, next) => {
