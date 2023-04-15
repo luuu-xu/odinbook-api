@@ -77,6 +77,8 @@ The following environment variables are used in this project:
 - JWT_SECRET: The secret key used to sign JWT tokens.
 - SESSION_SECRET: The secret key used for session.
 - CORS_ORIGIN: The client-side url allowed to access the API.
+- VISITOR_ID = The id of the visitor user used for general visitor login.
+- VISITOR_PASSWORD = Password of the visitor user
 
 ## Testing
 Run npm test to run tests with a in-memory mongodb server.

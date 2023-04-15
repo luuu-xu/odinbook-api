@@ -13,6 +13,9 @@ router.post('/facebook-login', auth_controller.facebook_login);
 // POST visitor login route
 router.post('/visitor-login', auth_controller.visitor_login);
 
+// POST general visitor login
+router.post('/general-visitor-login', auth_controller.general_visitor_login);
+
 // POST login route for local username and password authentication
 router.post('/login', auth_controller.user_login);
 

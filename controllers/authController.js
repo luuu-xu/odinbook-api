@@ -177,10 +177,10 @@ exports.facebook_login = [
   } 
 ];
 
-// Login a visitor in the database on POST
+// Login a new visitor in the database on POST
 // @route   POST api/auth/visitor-login
 // @desc    Post a new user as visitor and delete the user later
-// @access  Private
+// @access  Public
 // @param   
 // @return  { user: User }
 exports.visitor_login = [
@@ -225,6 +225,30 @@ exports.visitor_login = [
     });
   }
 ];
+
+// Login the general visitor user in the database on POST
+// @route   POST api/auth/general-visitor-login
+// @desc    Logs in the general visitor user
+// @access  Public
+// @param
+// @return  { user: User } 
+exports.general_visitor_login = async (req, res, next) => {
+  try {
+    // Find the visitor user in the DB with id and password
+    const generalVisitor = await User.findById(process.env.VISITOR_ID);
+    generalVisitor.password = process.env.VISITOR_PASSWORD;
+
+    // Sign JWT back to the visitor
+    const token = jwt.sign({ _id: generalVisitor._id }, process.env.JWT_SECRET);
+    return res.status(200).json({
+      message: 'logged in',
+      user: generalVisitor,
+      token
+    });
+  } catch(err) {
+    return next(err);
+  }
+}
 
 // Log in the user with passport local strategy authentication on POST
 exports.user_login = [
